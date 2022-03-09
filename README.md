@@ -1,4 +1,4 @@
-# Simulation and plotting scripts for (Soplata et al., 2021)
+# Simulation and plotting scripts for (Soplata et al., 2022)
 
 These are the simulation and plotting runscripts for all simulations in the
 publication TBD. See below for instructions. All parameters relevant to the work
@@ -8,7 +8,10 @@ main mechanism files exist.
 
 ### Citation
 
-TBD
+Soplata, Austin E., Michelle M. McCarthy, Elie M. Adam, Patrick L. Purdon,
+Emery N. Brown, and Nancy Kopell. “Neuromodulation Due to Propofol Affects
+Anesthetic Oscillatory Coupling.” bioRxiv, February 20, 2022.
+https://doi.org/10.1101/2022.02.17.480766.
 
 ### Requirements
 
