@@ -1,7 +1,7 @@
 # Simulation and plotting scripts for (Soplata et al., 2022)
 
 These are the simulation and plotting runscripts for all simulations in the
-publication TBD. See below for instructions. All parameters relevant to the work
+publication below. See below for instructions. All parameters relevant to the work
 that not in this repo are contained here:
 https://github.com/asoplata/dynasim-extended-benita-model which is where the
 main mechanism files exist.
@@ -9,8 +9,8 @@ main mechanism files exist.
 ### Citation
 
 Soplata, Austin E., Michelle M. McCarthy, Elie M. Adam, Patrick L. Purdon,
-Emery N. Brown, and Nancy Kopell. “Neuromodulation Due to Propofol Affects
-Anesthetic Oscillatory Coupling.” bioRxiv, February 20, 2022.
+Emery N. Brown, and Nancy Kopell. Neuromodulation Due to Propofol Affects
+Anesthetic Oscillatory Coupling.https://github.com/asoplata/soplata-2022-thalcort-code bioRxiv, February 20, 2022.
 https://doi.org/10.1101/2022.02.17.480766.
 
 ### Requirements
