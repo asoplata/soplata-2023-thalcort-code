@@ -1,0 +1,420 @@
+%{
+%}
+
+%% Analyze alpha/SWO PAC for full sim and zoommed in parts
+% Load data
+
+args.sim_name = 'p25d40s004_20230102_mainfig_i24s_i001';
+
+if ~exist('data','var')
+    data = load(strcat('/example-output-directory/x7-scc-data/p25-thalcort-data/',...
+                       args.sim_name,...
+                       '/data/study_sim1_data.mat'));
+end
+
+% Initialize figure index
+nn = 0;
+
+% Combine Isyns
+data.summed_isyns = sum(data.PYdr_PYso_iAMPA_PYdr_PYso_JB12_IAMPA_PYdr_PYso_JB12, 2) + ...
+    sum(data.PYdr_TC_iAMPA_PYdr_TC_IAMPA_PYdr_TC, 2);
+
+data.detrended_isyns = detrend(data.summed_isyns);
+
+% Other analysis params
+
+args.downsampling_factor = 10;
+% Time resolution of simulation in ms
+dt = 0.01;
+% Since simulation uses time in ms, need to convert to Hz
+Fs = 1000/(dt*args.downsampling_factor);
+nyq = Fs/2;
+
+phase_filter_freqs_bh = [0.5 2.0];
+ampl_filter_freqs_bh  = [8 14];
+phase_filter_order_bh = 2;
+ampl_filter_order_bh  = 2;
+
+calc_comodulogramsBH = 1;
+
+% Create and apply filters %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Each cell array element of ph_filt_signals and data.filt_amp_sig has the
+% same dimensions as the original signals i.e. number of columns = number of
+% trials
+fprintf('About to begin filtering signals\n')
+[data.filt_ph_sig, data.filt_amp_sig] = filt_signals_butter(data.detrended_isyns, data.detrended_isyns, Fs,...
+  phase_filter_freqs_bh, ampl_filter_freqs_bh,...
+  phase_filter_order_bh, ampl_filter_order_bh);
+
+% compute SWO phase for figures
+data.swo_phases_bh = angle(hilbert(data.filt_ph_sig{1,1}));
+
+% Plot voltages and filtered alpha and SWO for whole simulation
+
+args.time_begin =      0;
+args.time_end =    30000;
+args.amp_thickness = 0.5;
+args.beta_plots = false;
+
+nn = plot_time_period(data, args, 'full', nn);
+
+% Plot voltages and filtered alpha and SWO for just a couple Trough-max cycles
+
+args.time_begin =   6500;
+args.time_end =     8500;
+args.amp_thickness = 2;
+args.beta_plots = false;
+
+nn = plot_time_period(data, args, 'tmax', nn);
+
+% Plot voltages and filtered alpha and SWO for just a couple Peak-max cycles
+
+args.time_begin =   12000;
+args.time_end =     15000;
+args.amp_thickness = 2;
+args.beta_plots = false;
+
+nn = plot_time_period(data, args, 'pmax', nn);
+
+% Calculate combined Isyn PAC measures %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+fprintf('About to analyze filtered signals\n')
+[pacmat, pac_angles, comodulogramsBH, modulation_indices] = find_pac_nofilt_bh(...
+  data.filt_ph_sig, data.filt_amp_sig, Fs, calc_comodulogramsBH);
+ 
+% Plot combined Isyn PAC measures %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+nn = nn + 1;
+h(nn) = figure(nn);
+
+imagesc(comodulogramsBH{1,1})
+colorbar
+
+period_name = 'full';
+plot_type = 'comodu_BH';
+filename_plot = strcat(args.sim_name, '_subfig', num2str(nn, '%02i'), '_', ...
+    period_name, '_', plot_type);
+print(h(nn), filename_plot, '-dpng')
+
+%% do the same, BUT for beta PAC
+clf
+close all
+
+ampl_filter_freqs_bh  = [14 20];
+ampl_filter_order_bh  = 2;
+
+calc_comodulogramsBH = 1;
+
+% Create and apply filters %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Each cell array element of ph_filt_signals and data.filt_amp_sig has the
+% same dimensions as the original signals i.e. number of columns = number of
+% trials
+fprintf('About to begin filtering signals\n')
+[data.filt_ph_sig, data.filt_amp_sig] = filt_signals_butter(data.detrended_isyns, data.detrended_isyns, Fs,...
+  phase_filter_freqs_bh, ampl_filter_freqs_bh,...
+  phase_filter_order_bh, ampl_filter_order_bh);
+
+% compute SWO phase for figures
+data.swo_phases_bh = angle(hilbert(data.filt_ph_sig{1,1}));
+
+% Plot voltages and filtered BETA and SWO for whole simulation
+
+args.time_begin =      0;
+args.time_end =    30000;
+args.amp_thickness = 0.5;
+args.beta_plots = true;
+
+nn = plot_time_period(data, args, 'fullBETA', nn);
+
+% Plot voltages and filtered BETA and SWO for just a couple Trough-max cycles
+
+args.time_begin =   6500;
+args.time_end =     8500;
+args.amp_thickness = 2;
+args.beta_plots = true;
+
+nn = plot_time_period(data, args, 'tmaxBETA', nn);
+
+% Plot voltages and filtered BETA and SWO for just a couple Peak-max cycles
+
+args.time_begin =   12000;
+args.time_end =     15000;
+args.amp_thickness = 2;
+args.beta_plots = true;
+
+nn = plot_time_period(data, args, 'pmaxBETA', nn);
+
+% Calculate combined Isyn PAC measures %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+fprintf('About to analyze filtered signals\n')
+[pacmat, pac_angles, comodulogramsBH, modulation_indices] = find_pac_nofilt_bh(...
+  data.filt_ph_sig, data.filt_amp_sig, Fs, calc_comodulogramsBH);
+ 
+% Plot combined Isyn PAC measures %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+nn = nn + 1;
+h(nn) = figure(nn);
+
+imagesc(comodulogramsBH{1,1})
+colorbar
+
+period_name = 'fullBETA';
+plot_type = 'comodu_BH';
+filename_plot = strcat(args.sim_name, '_subfig', num2str(nn, '%02i'), '_', ...
+    period_name, '_', plot_type);
+print(h(nn), filename_plot, '-dpng')
+
+%% (alpha/SWO) Extract only TCPY contribution to LFP for zoomed time periods
+clf
+close all
+
+data.detrended_isyns = detrend(sum(data.PYdr_TC_iAMPA_PYdr_TC_IAMPA_PYdr_TC, 2));
+
+ampl_filter_freqs_bh  = [8 14];
+
+% Create and apply filters %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Each cell array element of ph_filt_signals and data.filt_amp_sig has the
+% same dimensions as the original signals i.e. number of columns = number of
+% trials
+fprintf('About to begin filtering signals\n')
+[data.filt_ph_sig, data.filt_amp_sig] = filt_signals_butter(data.detrended_isyns, data.detrended_isyns, Fs,...
+  phase_filter_freqs_bh, ampl_filter_freqs_bh,...
+  phase_filter_order_bh, ampl_filter_order_bh);
+
+% compute SWO phase for figures
+data.swo_phases_bh = angle(hilbert(data.filt_ph_sig{1,1}));
+
+% Plot voltages and filtered alpha and SWO for just a couple Trough-max cycles
+
+args.time_begin =   6500;
+args.time_end =     8500;
+args.amp_thickness = 2;
+args.beta_plots = false;
+
+nn = plot_time_period(data, args, 'tmaxTCPYONLY', nn);
+
+% Plot voltages and filtered alpha and SWO for just a couple Peak-max cycles
+
+args.time_begin =   12000;
+args.time_end =     15000;
+args.amp_thickness = 2;
+args.beta_plots = false;
+
+nn = plot_time_period(data, args, 'pmaxTCPYONLY', nn);
+
+%% (BETA/SWO) Extract only TCPY contribution to LFP for zoomed time periods
+clf
+close all
+
+data.detrended_isyns = detrend(sum(data.PYdr_TC_iAMPA_PYdr_TC_IAMPA_PYdr_TC, 2));
+
+ampl_filter_freqs_bh  = [14 20];
+
+% Create and apply filters %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Each cell array element of ph_filt_signals and data.filt_amp_sig has the
+% same dimensions as the original signals i.e. number of columns = number of
+% trials
+fprintf('About to begin filtering signals\n')
+[data.filt_ph_sig, data.filt_amp_sig] = filt_signals_butter(data.detrended_isyns, data.detrended_isyns, Fs,...
+  phase_filter_freqs_bh, ampl_filter_freqs_bh,...
+  phase_filter_order_bh, ampl_filter_order_bh);
+
+% compute SWO phase for figures
+data.swo_phases_bh = angle(hilbert(data.filt_ph_sig{1,1}));
+
+% Plot voltages and filtered alpha and SWO for just a couple Trough-max cycles
+
+args.time_begin =   6500;
+args.time_end =     8500;
+args.amp_thickness = 2;
+args.beta_plots = true;
+
+nn = plot_time_period(data, args, 'tmaxTCPYONLYBETA', nn);
+
+% Plot voltages and filtered alpha and SWO for just a couple Peak-max cycles
+
+args.time_begin =   12000;
+args.time_end =     15000;
+args.amp_thickness = 2;
+args.beta_plots = true;
+
+nn = plot_time_period(data, args, 'pmaxTCPYONLYBETA', nn);
+
+%% (alpha/SWO) Extract only PYPY contribution to LFP for zoomed time periods
+clf
+close all
+
+data.detrended_isyns = detrend(sum(data.PYdr_PYso_iAMPA_PYdr_PYso_JB12_IAMPA_PYdr_PYso_JB12, 2));
+
+ampl_filter_freqs_bh  = [8 14];
+
+% Create and apply filters %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Each cell array element of ph_filt_signals and data.filt_amp_sig has the
+% same dimensions as the original signals i.e. number of columns = number of
+% trials
+fprintf('About to begin filtering signals\n')
+[data.filt_ph_sig, data.filt_amp_sig] = filt_signals_butter(data.detrended_isyns, data.detrended_isyns, Fs,...
+  phase_filter_freqs_bh, ampl_filter_freqs_bh,...
+  phase_filter_order_bh, ampl_filter_order_bh);
+
+% compute SWO phase for figures
+data.swo_phases_bh = angle(hilbert(data.filt_ph_sig{1,1}));
+
+% Plot voltages and filtered alpha and SWO for just a couple Trough-max cycles
+
+args.time_begin =   6500;
+args.time_end =     8500;
+args.amp_thickness = 2;
+args.beta_plots = false;
+
+nn = plot_time_period(data, args, 'tmaxPYPYONLY', nn);
+
+% Plot voltages and filtered alpha and SWO for just a couple Peak-max cycles
+
+args.time_begin =   12000;
+args.time_end =     15000;
+args.amp_thickness = 2;
+args.beta_plots = false;
+
+nn = plot_time_period(data, args, 'pmaxPYPYONLY', nn);
+
+%% (BETA/SWO)Extract only PYPY contribution to LFP for zoomed time periods
+
+data.detrended_isyns = detrend(sum(data.PYdr_PYso_iAMPA_PYdr_PYso_JB12_IAMPA_PYdr_PYso_JB12, 2));
+
+ampl_filter_freqs_bh  = [14 20];
+
+% Create and apply filters %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Each cell array element of ph_filt_signals and data.filt_amp_sig has the
+% same dimensions as the original signals i.e. number of columns = number of
+% trials
+fprintf('About to begin filtering signals\n')
+[data.filt_ph_sig, data.filt_amp_sig] = filt_signals_butter(data.detrended_isyns, data.detrended_isyns, Fs,...
+  phase_filter_freqs_bh, ampl_filter_freqs_bh,...
+  phase_filter_order_bh, ampl_filter_order_bh);
+
+% compute SWO phase for figures
+data.swo_phases_bh = angle(hilbert(data.filt_ph_sig{1,1}));
+
+% Plot voltages and filtered alpha and SWO for just a couple Trough-max cycles
+
+args.time_begin =   6500;
+args.time_end =     8500;
+args.amp_thickness = 2;
+args.beta_plots = true;
+
+nn = plot_time_period(data, args, 'tmaxPYPYONLYBETA', nn);
+
+% Plot voltages and filtered alpha and SWO for just a couple Peak-max cycles
+
+args.time_begin =   12000;
+args.time_end =     15000;
+args.amp_thickness = 2;
+args.beta_plots = true;
+
+nn = plot_time_period(data, args, 'pmaxPYPYONLYBETA', nn);
+
+
+%% function
+
+function nn = plot_time_period(data, args, period_name, nn)
+
+time_index_range = args.time_begin*args.downsampling_factor+1:args.time_end*args.downsampling_factor;
+
+nn = nn + 1;
+h(nn) = figure(nn);
+h(nn).WindowState = 'maximized';
+% apparently have to wait for the windows to maximize or else they're not
+% printed as if maximized? I hate matlab\
+pause(1)
+voltage_cap = 60;
+ax1=subplot(5,1,1);
+plot(data.time(time_index_range), data.PYdr_v(time_index_range, 1), 'color', 'k')
+ylim([-100 voltage_cap]); set(ax1,'box','off')
+ax2=subplot(5,1,2);
+plot(data.time(time_index_range), data.PYso_v(time_index_range, 1), 'color', 'k')
+ylim([-100 voltage_cap]); set(ax2,'box','off')
+ax3=subplot(5,1,3);
+plot(data.time(time_index_range), data.IN_v(time_index_range, 1), 'color', 'k')
+ylim([-100 voltage_cap]); set(ax3,'box','off')
+ax4=subplot(5,1,4);
+plot(data.time(time_index_range), data.TC_v(time_index_range, 1), 'color', 'k')
+ylim([-100 voltage_cap]); set(ax4,'box','off')
+ax5=subplot(5,1,5);
+plot(data.time(time_index_range), data.TRN_v(time_index_range, 1), 'color', 'k')
+ylim([-100 voltage_cap]); set(ax5,'box','off')
+
+plot_type = 'single_voltages';
+filename_plot = strcat(args.sim_name, '_subfig', num2str(nn, '%02i'), '_', ...
+    period_name, '_', plot_type);
+print(h(nn), filename_plot, '-dpng')
+
+nn = nn + 1;
+h(nn) = figure(nn);
+h(nn).WindowState = 'maximized';
+pause(1)
+ax1=subplot(1,1,1);
+plot(data.time(time_index_range), data.summed_isyns(time_index_range), 'k')
+set(ax1,'box','off')
+plot_type = 'combined_isyns';
+filename_plot = strcat(args.sim_name, '_subfig', num2str(nn, '%02i'), '_', ...
+    period_name, '_', plot_type);
+print(h(nn), filename_plot, '-dpng')
+
+nn = nn + 1;
+h(nn) = figure(nn);
+h(nn).WindowState = 'maximized';
+pause(1)
+ax1=subplot(1,1,1);
+plot(data.time(time_index_range), data.swo_phases_bh(time_index_range), 'LineWidth', 1, 'color', 'k')
+set(ax1,'box','off')
+plot_type = 'swo_phase';
+filename_plot = strcat(args.sim_name, '_subfig', num2str(nn, '%02i'), '_', ...
+    period_name, '_', plot_type);
+print(h(nn), filename_plot, '-dpng')
+
+nn = nn + 1;
+h(nn) = figure(nn);
+h(nn).WindowState = 'maximized';
+pause(1)
+ax1=subplot(1,1,1);
+% Why do you have to specify yyaxis colors differently than all other
+% matlab plotting code? I hate matlab
+% Also, this is not idempotent, since for some reason, re-running this plot
+% color code after a figure already exists will mess up the color order, so
+% have to run the figure from scratch every time? I don't know, i hate
+% matlab
+if args.beta_plots == true
+    colororder([0.45 0.67 0.18 ; 0 0 1])
+else
+    colororder([0.45 0.67 0.18 ; 1 0 0])
+end
+
+yyaxis left
+plot(data.time(time_index_range), data.filt_ph_sig{1,1}(time_index_range), 'LineWidth', 4)
+ylim([-6 6])
+yyaxis right
+plot(data.time(time_index_range), data.filt_amp_sig{1,1}(time_index_range), 'LineWidth', args.amp_thickness)
+ylim([-15 15])
+set(ax1,'box','off')
+plot_type = 'alpha_swo_amps';
+filename_plot = strcat(args.sim_name, '_subfig', num2str(nn, '%02i'), '_', ...
+    period_name, '_', plot_type);
+print(h(nn), filename_plot, '-dpng')
+
+nn = nn + 1;
+h(nn) = figure(nn);
+h(nn).WindowState = 'maximized';
+pause(1)
+ax1=subplot(3,1,1);
+plot(data.time(time_index_range), sum(data.PYdr_TC_iAMPA_PYdr_TC_IAMPA_PYdr_TC(time_index_range,:), 2), 'LineWidth', 1, 'color', 'k')
+set(ax1,'box','off')
+ax2=subplot(3,1,2);
+plot(data.time(time_index_range), sum(data.PYdr_PYso_iAMPA_PYdr_PYso_JB12_IAMPA_PYdr_PYso_JB12(time_index_range,:), 2), 'LineWidth', 1, 'color', 'k')
+set(ax2,'box','off')
+ax3=subplot(3,1,3);
+plot(data.time(time_index_range), sum(data.TC_PYso_iAMPA_TC_PYso_IAMPA_TC_PYso(time_index_range,:), 2), 'LineWidth', 1, 'color', 'k')
+set(ax3,'box','off')
+plot_type = 'individual_isyns';
+filename_plot = strcat(args.sim_name, '_subfig', num2str(nn, '%02i'), '_', ...
+    period_name, '_', plot_type);
+
+print(h(nn), filename_plot, '-dpng')
+
+end
