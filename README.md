@@ -8,10 +8,7 @@ main mechanism files exist.
 
 ### Citation
 
-Soplata, Austin E., Michelle M. McCarthy, Elie M. Adam, Patrick L. Purdon,
-Emery N. Brown, and Nancy Kopell. Neuromodulation Due to Propofol Affects
-Anesthetic Oscillatory Coupling. bioRxiv, February 20, 2022.
-https://doi.org/10.1101/2022.02.17.480766.
+Soplata, Austin E., Elie Adam, Emery N. Brown, Patrick L. Purdon, Michelle M. McCarthy, and Nancy Kopell. 2023. "Rapid Thalamocortical Network Switching Mediated by Cortical Synchronization Underlies Propofol-Induced EEG Signatures: A Biophysical Model." Journal of Neurophysiology 130 (1): 86–103. https://doi.org/10.1152/jn.00068.2022.
 
 ### Hardware Requirements
 
