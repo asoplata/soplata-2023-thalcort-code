@@ -1,0 +1,38 @@
+% Reference: http://www.scholarpedia.org/article/Spike-timing_dependent_plasticity#Online_implementation_of_STDP_models
+
+% AMPA synaptic parameters
+gAmpa = [1]       % mS/cm2, maximal conductance
+EAMPA = [0]         % mV, reversal potential
+tauAMPAr = [0.4]% [0.5]    %rise time constant: 0.5for pry, 0.3for interneuron
+tauAMPAd = [7]% [7]%  %     %decay time constant: 7ms for pyramidal, 2.4for interneuron
+IC = [0]
+IC_noise = [0]
+
+% NMDA Synaptic parameters and auxiliary functions (see Methods in Neuronal Modeling, Chapter 1)
+gNmda = [.1]        % mS/cm2, maximal conductance
+ENMDA = [0]         % mV, reversal potential
+tauNMDAd = 125 % 100 %285;     % 151.5=1/beta=(1/(.0066[1/ms]))       % ms, decay time constant
+tauNMDAr =3.76 %10.6;3.76    % 13.89 = 1/alpha=1/(.072[1/(mM*ms)]) 	% ms, rise time constant
+Tmax = 1            % mM, maximal transmitter concentration
+Vpp = [2]           % mV
+Kp = [5] %5
+NT(X) = Tmax./(1+exp(-(X-Vpp)/Kp)) 		 % sigmoidal neurotransmitter concentration [T] increasing rapidly to Tmax with presynaptic voltage above 0mV (i.e., Vpre spike)
+MgBlock(X) = 1./(1+0.33*exp(-0.06*X))  % .33 sigmoidal Magnesium block for NMDA synapse
+
+% Network Connectivity
+netcon = ones(N_pre,N_post) % default connectivity matrix (all-to-all)
+
+% Presynaptic spike detection
+sAMPA' = -sAMPA./tauAMPAd + 5.*(1+tanh(X_pre/4)).*((1-sAMPA)/tauAMPAr)
+sAMPA(0) = IC+IC_noise.*rand(1,N_pre)
+sNMDA' = NT(X_pre).*(1-sNMDA)/tauNMDAr-sNMDA/tauNMDAd 	% first-order kinetics for two-state (open/closed) scheme. [s]=fraction of receptors in open state
+sNMDA(0) = IC+IC_noise*rand(1,N_pre)
+
+% Synaptic conductance and currents
+g_ampa(sAMPA) = gAmpa.*sAMPA
+g_nmda(sNMDA) = gNmda.*sNMDA
+
+IAMPA(X,w,sAMPA) = g_ampa(sAMPA)*(w.*netcon).*(X-EAMPA)
+INMDA(X,sNMDA)   = g_nmda(sNMDA)*netcon.*(X-ENMDA).*MgBlock(X)
+
+@current += -IAMPA(X_post,@weights,sAMPA)-INMDA(X_post,sNMDA)

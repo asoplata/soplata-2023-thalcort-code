@@ -1,0 +1,94 @@
+% # iNaCurrs_PYso_PYdr_JB12:
+%
+% Sodium-dependent potassium current, for generic pyramidal soma compartments
+% used in the DynaSim implementation of (Benita et al., 2012). This is
+% implemented as a "connection" mechanism similar to synapse mechanisms, since
+% it draws from both dendrite and soma activity. The original paper constructs
+% this mechanism from (Bischoff et al., 1998), (Li et al., 1996), (Liu, 1999),
+% and (Wang et al., 2002).
+%
+% - References:
+%     - Benita, J. M., Guillamon, A., Deco, G., & Sanchez-Vives, M. V. (2012).
+%     Synaptic depression and slow oscillatory activity in a biophysical
+%     network model of the cerebral cortex. Frontiers in Computational
+%     Neuroscience, 6. https://doi.org/10.3389/fncom.2012.00064
+%     - Bischoff, U., Vogel, W., & Safronov, B. V. (1998). Na+-activated K+
+%     channels in small dorsal root ganglion neurones of rat. The Journal of
+%     Physiology, 510 ( Pt 3), 743–754. Retrieved from
+%     https://www.ncbi.nlm.nih.gov/pubmed/9660890
+%     - Li, Y. X., Bertram, R., & Rinzel, J. (1996). Modeling
+%     N-methyl-D-aspartate-induced bursting in dopamine neurons. Neuroscience,
+%     71(2), 397–410. Retrieved from
+%     https://www.ncbi.nlm.nih.gov/pubmed/9053795
+%     - Liu Y. Dynamics of Cortical Neuronal Activity Across Multiple Temporal
+%     Scales: From Sensory Adaptation to Working Memory (PhD thesis). Waltham,
+%     MA: Brandeis University
+%     - Wang, X.-J., Liu, Y., Sanchez-Vives, M. V., & McCormick, D. A. (2003).
+%     Adaptation and temporal decorrelation by single neurons in the primary
+%     visual cortex. Journal of Neurophysiology, 89(6), 3279–3293.
+%     https://doi.org/10.1152/jn.00242.2003
+%
+% - Tags: potassium, current, intrinsic, pyramidal, soma
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Local INa_PYso_JB12 section
+% Parameters
+gNa = 50 % mS/cm^2
+ENa = 55 % mV
+phi = 4 % temperature factor
+hNaIC = 0.5
+hNaNoiseIC = 0.1
+% Functions
+alphaM(X) = 0.1.*(X+33)./(1-exp(-(X+33)./10))
+betaM(X) =  4.*exp(-(X+53.7)./12)
+MinfNa(X) = alphaM(X)./(alphaM(X) + betaM(X))
+alphaH(X) = 0.07.*exp(-(X+50)./10)
+betaH(X) =  1./(1+exp(-(X+20)./10))
+% Note the negative here, in contrast to in the original mechanism
+INa_PYso_local(X,hNa) = gNa.*MinfNa(X).^3.*hNa.*(X-ENa)
+
+% ODEs and ICs
+hNa' = phi.*((alphaH(X_post).*(1-hNa)) - (betaH(X_post).*hNa))
+hNa(0)=hNaIC+hNaNoiseIC.*rand(1, Npop)
+
+
+% Local INaP_PYdr_JB12 section
+% Parameters
+gNaP = 0.0686 % mS/cm^2
+ENaP = 55  % mV
+% Functions
+MinfNaP(X) = 1./(1 + exp(-(X+55.7)./7.7))
+% Note the negative here, in contrast to in the original mechanism
+INaP_PYdr_local(X) = gNaP.*MinfNaP(X).^3.*(X-ENaP)
+
+
+% KNa section
+% Parameters
+gKNa = 1.33 % mS/cm^2
+EKNa = -100 % mV, same as potassium reversal potential
+
+concNaIC = 12
+concNaNoiseIC = 3
+
+% We must multiply by 1000 to convert 1/nA to 1/uA, since all the rest of our
+% equations use uA:
+alphaNa = 0.01*1000 % mM / (uA * ms)
+RPump = 0.018  % mM / ms
+eqNa = 9.5     % mM
+eqNaPumpTerm = eqNa^3 / (eqNa^3 + 15^3)
+
+% Connectivity
+netcon = eye(N_pre,N_post)
+
+% Functions
+IKNa_PYso_PYdr_JB12(X,concNa) = -gKNa.*(0.37./(1 + (38.7./concNa).^3.5))*netcon.*(X-EKNa)
+
+monitor INa_PYso_local
+monitor INaP_PYdr_local
+monitor IKNa_PYso_PYdr_JB12
+
+% ODEs and ICs
+concNa' = -alphaNa.*(0.00015.*INa_PYso_local(X_post,hNa) + 0.00035.*INaP_PYdr_local(X_pre)) - RPump.*(concNa.^3./(concNa.^3+15^3) - eqNaPumpTerm)
+concNa(0) = concNaIC+concNaNoiseIC.*rand(1,N_pre)
+
+% Interface
+@current += IKNa_PYso_PYdr_JB12(X_post,concNa)

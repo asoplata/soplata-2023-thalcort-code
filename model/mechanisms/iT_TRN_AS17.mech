@@ -1,0 +1,44 @@
+% # iT_TRN_AS17:
+%
+% T-type Low-threshold Calcium current for generic thalamic reticular cells
+% used in (Soplata et al., 2017).
+%
+% - References:
+%     - Soplata AE, McCarthy MM, Sherfey J, Lee S, Purdon PL, Brown EN, et al.
+%     Thalamocortical control of propofol phase-amplitude coupling. PLoS Comput
+%     Biol. 2017;13: e1005879. doi:10.1371/journal.pcbi.1005879
+%
+% - Tags: calcium, current, intrinsic, thalamic, reticular
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Parameters
+gT = 3      % mS/cm^2
+ET = 120    % mV
+vShift = 4  % mV
+phiM = 6.81 % unitless Q10 value of temperature adjustment
+phiH = 3.73 % unitless Q10 value of temperature adjustment
+
+mTIC = 0.01
+mTNoiseIC = 0.01
+hTIC = 0.6
+hTNoiseIC = 0.01
+
+% Functions
+Minf(X) = 1./(1+exp(-(X+vShift+50)./7.4))
+tauM(X) = ( 3.0 + 1.0./(exp((X+vShift+25)./10) + exp(-(X+vShift+100)./15)))./phiM
+
+Hinf(X) = 1./(1+exp((X+vShift+78)./5))
+tauH(X) = (85.0 + 1.0./(exp((X+vShift+46)./4)  + exp(-(X+vShift+405)./50)))./phiH
+
+iT_TRN_AS17(X,mT,hT,CaBuffer_TRN_AS17) = -gT.*mT.^2.*hT.*(X-ET)
+
+monitor iT_TRN_AS17
+
+% ODEs and ICs
+mT' = (Minf(X)-mT)./tauM(X)
+mT(0)=mTIC+mTNoiseIC.*rand(1,Npop)
+hT' = (Hinf(X)-hT)./tauH(X)
+hT(0)=hTIC+hTNoiseIC.*rand(1,Npop)
+
+% Interface
+@current += iT_TRN_AS17(X,mT,hT,CaBuffer_TRN_AS17)
+@iT_TRN_AS17 += -iT_TRN_AS17(X,mT,hT,CaBuffer_TRN_AS17)

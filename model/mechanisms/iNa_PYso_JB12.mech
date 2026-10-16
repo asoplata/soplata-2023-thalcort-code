@@ -1,0 +1,49 @@
+% # iNa_PYso_JB12:
+%
+% Fast sodium current for generic pyramidal soma compartments used in the
+% DynaSim implementation of (Benita et al., 2012). The paper claims this
+% mechanism is derived from (Wang, 1998) with "slight variations".
+%
+% - References
+%     - Benita, J. M., Guillamon, A., Deco, G., & Sanchez-Vives, M. V. (2012).
+%     Synaptic depression and slow oscillatory activity in a biophysical
+%     network model of the cerebral cortex. Frontiers in Computational
+%     Neuroscience, 6. https://doi.org/10.3389/fncom.2012.00064
+%     - Wang, X-J. (1998). Calcium coding and adaptive temporal computation in
+%     cortical pyramidal neurons. J. Neurophysiol. 79, 1549–1566.
+%
+% - Tags: sodium, current, intrinsic, pyramidal, soma
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Parameters
+gNa = 50 % mS/cm^2
+ENa = 55 % mV
+
+phi = 4 % temperature factor
+
+hNaIC = 0.7
+hNaNoiseIC = 0.1
+
+% Functions
+alphaM(X) = 0.1.*(X+33)./(1-exp(-(X+33)./10))
+betaM(X) =  4.*exp(-(X+53.7)./12)
+Minf(X) = alphaM(X)./(alphaM(X) + betaM(X))
+
+alphaH(X) = 0.07.*exp(-(X+50)./10)
+betaH(X) =  1./(1+exp(-(X+20)./10))
+
+INa_PYso_JB12(X,hNa) = gNa.*Minf(X).^3.*hNa.*(X-ENa)
+
+monitor INa_PYso_JB12
+
+% ODEs and ICs
+hNa' = phi.*((alphaH(X).*(1-hNa)) - (betaH(X).*hNa))
+hNa(0)=hNaIC+hNaNoiseIC.*rand(1, Npop)
+
+% Interface
+% Note: Usually in DynaSim, the current is made negative
+% before being assigned to a linker, but in this case, the
+% below is less confusing. Exposing INa_PYso_JB12 for the
+% IKNa_PYso_PYdr_JB12 mechanism requires a not-made-negative
+% version of INa_PYso_JB12.
+@current += -INa_PYso_JB12(X,hNa)
+@INa_PYso_JB12 += INa_PYso_JB12(X,hNa)

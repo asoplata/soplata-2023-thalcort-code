@@ -1,0 +1,41 @@
+% # iNa_TC_AS17:
+%
+% Fast sodium current for generic thalamocortical cells used in (Soplata et
+% al., 2017).
+%
+% - References:
+%     - Soplata AE, McCarthy MM, Sherfey J, Lee S, Purdon PL, Brown EN, et al.
+%     Thalamocortical control of propofol phase-amplitude coupling. PLoS Comput
+%     Biol. 2017;13: e1005879. doi:10.1371/journal.pcbi.1005879
+%
+% - Tags: sodium, current, intrinsic, thalamus, thalamocortical
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Parameters
+gNa = 90     % mS/cm^2
+ENa = 50     % mV
+
+vShift = -40 % mV
+
+mNaIC = 0.00007
+mNaNoiseIC = 0.00001
+hNaIC = 0.8
+hNaNoiseIC = 0.1
+
+% Functions
+alphaM(X) = 0.32.*(13 - (X-vShift))./(exp((13 - (X-vShift))./4) - 1)
+betaM(X) =  0.28.*((X-vShift) - 40)./(exp(((X-vShift) - 40)./5) - 1)
+alphaH(X) = 0.128.*exp((17 - (X-vShift))./18)
+betaH(X) =  4./(exp((40 - (X-vShift))./5) + 1)
+
+iNa_TC_AS17(X,mNa,hNa) = -gNa.*mNa.^3.*hNa.*(X-ENa)
+
+monitor iNa_TC_AS17
+
+% ODEs and ICs
+mNa' = alphaM(X).*(1-mNa) - betaM(X).*mNa;
+mNa(0)=mNaIC+mNaNoiseIC.*rand(1,Npop)
+hNa' = alphaH(X).*(1-hNa) - betaH(X).*hNa;
+hNa(0)=hNaIC+hNaNoiseIC.*rand(1,Npop)
+
+% Linker
+@current += iNa_TC_AS17(X,mNa,hNa)

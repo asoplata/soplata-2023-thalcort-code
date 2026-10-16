@@ -1,0 +1,22 @@
+% iAppliedStimBipAS22(t):
+%
+% Tonic stimulus, representing applied current injected into
+%   cell. This inserts uniformly distributed current into the cell that
+%   is "bipolar", i.e. essentially "amplitude * [uniform distribution
+%   between -1 and 1]"
+%
+% Note: By default this is ZERO, you must explicitly change the value using
+% 'vary', '.parameters', etc. if you actually want to use this mechanism!
+
+appliedStimAmpl=0
+onset=0
+offset=inf
+randomFlag=0
+
+% appliedStimDist = rand(1, Npop_PYdr);
+appliedStimDist = ones(1, N_post) - randomFlag*2*rand(1, N_post);
+
+
+IAppliedStimBipAS22(t) = appliedStimAmpl*appliedStimDist*(t>onset & t<offset)
+
+@current += IAppliedStimBipAS22(t)

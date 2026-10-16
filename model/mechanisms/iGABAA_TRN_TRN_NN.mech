@@ -1,0 +1,52 @@
+% # iGABAA_TRN_TRN_NN:
+%
+% Synaptic intrathalamic GABA-A-ergic inhibitory current used in (Soplata et
+% al., 2017).
+%
+% - References:
+%     - Soplata AE, McCarthy MM, Sherfey J, Lee S, Purdon PL, Brown EN, et al.
+%     Thalamocortical control of propofol phase-amplitude coupling. PLoS Comput
+%     Biol. 2017;13: e1005879. doi:10.1371/journal.pcbi.1005879
+%
+% Tags: synapse, connection, inhibition
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Parameters
+gGABAA = 0.1
+EGABAA = -80
+tauGABAA = 5 % ms
+
+% Propofol-modifying parameters
+propoCondMult = 1
+propoTauMult = 1
+
+sGABAAIC = 0
+sGABAANoiseIC= 0.1
+
+% Connectivity
+% Connective radius, aka how many target cells each source cell connects
+% to, from the source's perspective.
+radius = 10
+
+% Remove autapses to the dendrite corresponding to this soma
+removeRecurrentBool = 0
+% We also need to normalize the conductance in mS/cm^2 by the number of
+% connections each target cell is receiving on average, so that the TOTAL
+% sum of their conductive inputs adds to our overall maximal conductance
+% above.
+normalizingFactor = min(((2*radius + (1-removeRecurrentBool)) / (N_post/N_pre)), N_pre)
+
+% Note that what is passed is 2x the radius
+netcon = netconNearestNeighbors(2*radius, N_pre, N_post, removeRecurrentBool)
+
+
+% Functions
+iGABAA_TRN_TRN_NN(X,sGABAA) = -propoCondMult*gGABAA/N_pre.*(sGABAA*netcon).*(X-EGABAA)
+
+monitor iGABAA_TRN_TRN_NN
+
+% ODEsa and ICs
+sGABAA' = 2.*(1 + tanh(X_pre./4)).*(1-sGABAA) - sGABAA./(tauGABAA*propoTauMult);
+sGABAA(0) = sGABAAIC+sGABAANoiseIC.*rand(1,Npre);
+
+% Linker
+@current += iGABAA_TRN_TRN_NN(X_post,sGABAA)

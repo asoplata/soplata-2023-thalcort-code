@@ -1,0 +1,209 @@
+% Table 1: covaries the PY->PY and TC->PY AMPA conductances (and the Poisson
+% input conductances) from 0.002 to 0.012 mS/cm^2, with 100 randomly-seeded
+% 30 s simulations per value. The time spent in the C-state was scored by
+% visual inspection into `data/table1_gAMPA_<value>_scoring.xlsx`.
+%
+% Original filenames: p25d34s041_20221127_anes_stats_g002_ga3.m through
+% p25d34s050_20221127_anes_stats_g012_ga3.m. These were one script per gAMPA
+% value and otherwise identical, so they are merged here into a loop over
+% `gAMPA_values`.
+
+% Add DynaSim and the model to the MATLAB path, and create the output directory
+addpath(fullfile(fileparts(mfilename('fullpath')), '..'));
+output_dir = setup_thalcort('table1');
+
+% Each row of Table 1. Remove values from this list to simulate fewer rows.
+gAMPA_values = [0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009, 0.010, 0.012];
+
+% -------------------------------------------------------------------
+%% 0. Random seed wrapper
+% -------------------------------------------------------------------
+% % Use this block below for single sims with identical seed
+% seed_list = 1121149;
+
+% % % Use this block below for many sims with different seeds
+number_sims = 100;
+% number_sims = 10;
+% % number_sims = 3;
+
+% -------------------------------------------------------------------
+%% 1. Define simulation parameters
+% -------------------------------------------------------------------
+% The first five values (marked NaN) are set to each value of
+% `gAMPA_values` in the loop below.
+modifications  = {
+'PYdr<-PYso', 'gAMPA', NaN;
+'PYdr<-TC',   'gAMPA', NaN;
+'PYdr',       'gext',  NaN;
+'TC',         'gext',  NaN;
+'TRN',        'gext',  NaN;
+
+'PYdr', 'gLeak', 0.005;
+
+'PYdr', 'baseline', 40.0;
+'TC',   'baseline', 40.0;
+'TRN',  'baseline', 40.0;
+'PYdr', 'DC', 0.0;
+'TC',   'DC', 0.0;
+'TRN',  'DC', 0.0;
+
+'PYdr<-PYso', 'gNMDA',  0.00257;
+'IN<-PYso',   'gNMDA',  0.0025 ;
+
+'PYso<-PYdr', 'gKNa',   1.33;
+'IN<-PYso',   'gAMPA',  1.0;
+'IN<-TC',     'gAMPA',  0.1;
+'PYso<-IN',   'gGABAA', 0.1;
+'TC',         'gH',     0.005;
+
+'PYdr',  'appliedStim', 0;
+'TRN',   'appliedStim', 0;
+'TC',    'appliedStim', 0;
+
+'PYso<-IN', 'propoCondMult', 3;
+'PYso<-IN', 'propoTauMult',  3;
+'IN<-IN',   'propoCondMult', 3;
+'IN<-IN',   'propoTauMult',  3;
+'TC<-TRN',  'propoCondMult', 3;
+'TC<-TRN',  'propoTauMult',  3;
+'TRN<-TRN', 'propoCondMult', 3;
+'TRN<-TRN', 'propoTauMult',  3;
+};
+
+vary={...
+};
+
+
+% This is where you set the length of your simulation
+time_end = 30000; % in milliseconds
+% time_end = 15000; % in milliseconds
+% time_end = 5000; % in milliseconds
+% time_end = 4000; % in milliseconds
+% time_end = 1000; % in milliseconds
+
+% The time step/"resolution" used for the simulation. By default, DynaSim
+% uses 0.01 milliseconds.
+dt = 0.01; % in milliseconds
+
+% Global scaling factor by which to multiple the number of cells in each
+% population. The default scaling is 1, meaning 100 PYdr, 100 PYso, 20 IN,
+% 20 TC, and 20 TRN. Changing the scale changes the population sizes
+% proportionally, meaning a scaling of 0.5 would simulate a network using
+% 50 PYdr, 50 PYso, 10 IN, 10 TC, and 10 TRN. Use this to decrease (< 1) or
+% increase (> 1) the number of cells modeled in each population,
+% proportionally.
+numCellsScaleFactor = 1;
+% numCellsScaleFactor = 0.2;
+
+
+% default was 0.0667
+
+% Options that affect the simulation properties without affecting the data;
+% configuration rather than scientific options.
+
+for gAMPA = gAMPA_values
+
+modifications(1:5, 3) = {gAMPA};
+
+rng('shuffle')
+seed_list = randi(9999999, number_sims, 1);
+
+% -------------------------------------------------------------------
+%% 2. Assemble and customize the model
+% -------------------------------------------------------------------
+spec = assembleFullSpec(numCellsScaleFactor);
+
+% Apply local non-vary modifications to spec
+spec = dsApplyModifications(spec, modifications);
+
+iteration_number = 0;
+for random_seed_index = 1:length(seed_list)
+
+    iteration_number = iteration_number + 1;
+    study_dir = fullfile(output_dir, [mfilename '_gAMPA_' num2str(gAMPA, '%.3f') '_i' num2str(iteration_number, '%.3d')]);
+
+    simulator_options={
+    'cluster_flag', 0,...       % Whether to submit simulation jobs to an SGE cluster (1 was used for the paper), 0 or 1
+    'cluster_matlab_version','2022a',...
+    'compile_flag', 0,...       % Whether to compile simulation using MEX, 0 or 1
+    'cpu_architecture', 'skylake',...
+    'disk_flag', 0,...          % Not implemented, ignore
+    'downsample_factor', 10,... % How much to downsample data, proportionally {integer}
+    'dt', dt,...                % Fixed time step, in milliseconds
+    'memory_limit', '64G',...   % Memory limit for use on cluster
+    'mex_flag', 0,...           % Flag for MEX compilation, not recommended
+    'num_cores', 1,...          % Number of CPU cores to use, including on cluster
+    'overwrite_flag', 1,...     % Whether to overwrite simulation raw data, 0 or 1
+    'parfor_flag', 0,...        % Whether to use parfor if running multiple local sims, 0 or 1
+    'plot_functions', {@dsPlot, @dsPlot, @dsPlot, @dsPlot, @dsPlot,...
+                       @dsPlot, @dsPlot, @dsPlot, @dsPlot, @dsPlot,...
+                       @dsPlot, @dsPlot, @dsPlot},...
+    'plot_options', {{'plot_type', 'waveform', 'format', 'png'},...   % Arguments to pass to each of those plot functions
+                     {'plot_type', 'rastergram', 'format', 'png','plot_time_axis_sec_flag',0},...
+                     {'plot_type', 'power', 'format', 'png'},...
+                     {'plot_type', 'comodulogramsBH','format','png',...
+                        'variable', 'PYdr_PYso_iAMPA_PYdr_PYso_JB12_IAMPA_PYdr_PYso_JB12',...
+                        'max_num_rows',1},...
+                     {'plot_type', 'comodulogramsBH','format','png',...
+                        'variable', 'PYdr_TC_iAMPA_PYdr_TC_IAMPA_PYdr_TC',...
+                        'max_num_rows',1},...
+                     {'plot_type', 'comodulograms','format','png',...
+                        'variable', 'PYdr_PYso_iAMPA_PYdr_PYso_JB12_IAMPA_PYdr_PYso_JB12',...
+                        'max_num_rows',1},...
+                     {'plot_type', 'comodulograms','format','png',...
+                        'variable', 'PYdr_TC_iAMPA_PYdr_TC_IAMPA_PYdr_TC',...
+                        'max_num_rows',1},...
+                     {'plot_type', 'waveform', ...
+                      'variable', {'TC_iH_TC_AS17_Open',...
+                                   'TC_iH_TC_AS17_Pone',...
+                                   'TC_iH_TC_AS17_OpenLocked',...
+                                   'TC_iH_TC_AS17_iH_TC_AS17'}, ...
+                      'max_num_rows', 4},...
+                     {'plot_type', 'waveform', ...
+                      'variable', {...
+                                   'PYdr_PYso_iAMPA_PYdr_PYso_JB12_IAMPA_PYdr_PYso_JB12',...
+                                   'PYdr_PYso_iAMPA_PYdr_PYso_JB12_res',...
+                                  },...
+                      'max_num_rows', 2},...
+                     {'plot_type', 'power', ...
+                      'variable', {...
+                                   'PYdr_PYso_iAMPA_PYdr_PYso_JB12_IAMPA_PYdr_PYso_JB12',...
+                                   'PYdr_PYso_iAMPA_PYdr_PYso_JB12_res',...
+                                  },...
+                      'max_num_rows', 2},...
+                     {'plot_type', 'waveform', ...
+                      'variable', {...
+                                   'TC_PYso_iAMPA_TC_PYso_IAMPA_TC_PYso',...
+                                   'TC_PYso_iAMPA_TC_PYso_sAMPA',...
+                                  },...
+                      'max_num_rows', 2},...
+                     {'plot_type', 'waveform', ...
+                      'variable', {...
+                                   'PYdr_TC_iAMPA_PYdr_TC_IAMPA_PYdr_TC',...
+                                   'PYdr_TC_iAMPA_PYdr_TC_sAMPA',...
+                                  },...
+                      'max_num_rows', 2},...
+                     {'plot_type', 'power', ...
+                      'variable', {...
+                                   'PYdr_TC_iAMPA_PYdr_TC_IAMPA_PYdr_TC',...
+                                   'PYdr_TC_iAMPA_PYdr_TC_sAMPA',...
+                                  },...
+                      'max_num_rows', 2},...
+                    },...
+    'random_seed', seed_list(random_seed_index),...     % What seed to use; use value 'shuffle' to randomize
+    'save_data_flag', 0,...     % Whether to save raw output data, 0 or 1
+    'save_results_flag', 1,...  % Whether to save output plots and analyses, 0 or 1
+    'solver', 'euler',...       % Numerical integration method {'euler','rk1','rk2','rk4'}
+    'study_dir', study_dir,...  % Where to save simulation results and code
+    'tspan', [0 time_end],...   % Time vector of simulation, [beg end], in milliseconds
+    'verbose_flag', 1,...       % Whether to display process info, 0 or 1
+    };
+
+    % -------------------------------------------------------------------
+    %% 3. Run the simulation
+    % -------------------------------------------------------------------
+    data = dsSimulate(spec,'vary',vary,simulator_options{:});
+
+end
+
+end

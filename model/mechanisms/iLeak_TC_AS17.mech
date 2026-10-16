@@ -1,0 +1,23 @@
+% # iLeak_TC_AS17:
+%
+% Leak current for generic thalamocortical relay cells used in (Soplata et al.,
+% 2017).
+%
+% - References:
+%     - Soplata AE, McCarthy MM, Sherfey J, Lee S, Purdon PL, Brown EN, et al.
+%     Thalamocortical control of propofol phase-amplitude coupling. PLoS Comput
+%     Biol. 2017;13: e1005879. doi:10.1371/journal.pcbi.1005879
+%
+% - Tags: leak, current, intrinsic, thalamus
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Parameters
+gLeak = 0.01 % mS/cm^2
+ELeak = -70  % mV
+
+% Functions
+iLeak_TC_AS17(X) = -gLeak.*(X-ELeak)
+
+monitor iLeak_TC_AS17
+
+% Linker
+@current += iLeak_TC_AS17(X)

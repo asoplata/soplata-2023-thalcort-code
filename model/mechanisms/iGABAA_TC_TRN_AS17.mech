@@ -1,0 +1,39 @@
+% # iGABAA_TC_TRN_AS17:
+%
+% Synaptic intrathalamic GABA-A-ergic inhibitory current used in (Soplata et
+% al., 2017).
+%
+% - References:
+%     - Soplata AE, McCarthy MM, Sherfey J, Lee S, Purdon PL, Brown EN, et al.
+%     Thalamocortical control of propofol phase-amplitude coupling. PLoS Comput
+%     Biol. 2017;13: e1005879. doi:10.1371/journal.pcbi.1005879
+%
+% Tags: synapse, connection, inhibition
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Parameters
+gGABAA = 0.1
+EGABAA = -80
+tauGABAA = 5 % ms
+
+% Propofol-modifying parameters
+propoCondMult = 1
+propoTauMult = 1
+
+sGABAAIC = 0
+sGABAANoiseIC= 0.1
+
+% Connectivity
+% 'ones' so all-to-all connectivity
+netcon = ones(N_pre,N_post)
+
+% Functions
+iGABAA_TC_TRN_AS17(X,sGABAA) = -propoCondMult*gGABAA/N_pre.*(sGABAA*netcon).*(X-EGABAA)
+
+monitor iGABAA_TC_TRN_AS17
+
+% ODEsa and ICs
+sGABAA' = 2.*(1 + tanh(X_pre./4)).*(1-sGABAA) - sGABAA./(tauGABAA*propoTauMult);
+sGABAA(0) = sGABAAIC+sGABAANoiseIC.*rand(1,Npre);
+
+% Linker
+@current += iGABAA_TC_TRN_AS17(X_post,sGABAA)

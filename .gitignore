@@ -1,3 +1,5 @@
-direct_only/data_2_directonly.mat
-lowdose_specific/data_3_lowdose.mat
-relay/data_1_relay.mat
+# Created by DynaSim the first time it runs on a machine
+dynasim/dsConfig.txt
+
+# MATLAB autosave files
+*.asv

@@ -1,0 +1,33 @@
+% # iK_TRN_AS17:
+%
+% Fast potassium current, for generic thalamic reticular cells used in (Soplata
+% et al., 2017).
+%
+% - References:
+%     - Soplata AE, McCarthy MM, Sherfey J, Lee S, Purdon PL, Brown EN, et al.
+%     Thalamocortical control of propofol phase-amplitude coupling. PLoS Comput
+%     Biol. 2017;13: e1005879. doi:10.1371/journal.pcbi.1005879
+%
+% - Tags: potassium, current, intrinsic, reticular, thalamus
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Parameters
+gK = 20      % mS/cm^2
+EK = -100    % mV
+vShift = -55 % mV
+
+nKIC = 0.00015
+nKNoiseIC = 0.0001
+
+% Functions
+alphaN(X) = 0.032.*(15 - (X-vShift))./(exp((15 - (X-vShift))./5) - 1)
+betaN(X) = 0.5.*exp((10 - (X-vShift))./40)
+iK_TRN_AS17(X,nK) = -gK.*nK.^4.*(X-EK)
+
+monitor iK_TRN_AS17
+
+% ODEs and ICs
+nK' = alphaN(X).*(1-nK) - betaN(X).*nK;
+nK(0)=nKIC+nKNoiseIC.*rand(1,Npop)
+
+% Linker
+@current += iK_TRN_AS17(X,nK)
