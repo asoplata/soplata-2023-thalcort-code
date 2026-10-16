@@ -1,0 +1,36 @@
+% # iAMPA_TRN_TC_NN:
+%
+% Synaptic AMPAergic excitatory current used in (Soplata et al., 2017).
+%
+% - References:
+%     - Soplata AE, McCarthy MM, Sherfey J, Lee S, Purdon PL, Brown EN, et al.
+%     Thalamocortical control of propofol phase-amplitude coupling. PLoS Comput
+%     Biol. 2017;13: e1005879. doi:10.1371/journal.pcbi.1005879
+%
+% Tags: synapse, connection, excitation
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Parameters
+gAMPA = 0.4 % mS/cm^2
+EAMPA = 1   % mV
+% EAMPA = 0   % mV
+tauAMPA = 2
+
+sAMPAIC = 0
+sAMPANoiseIC= 0.1
+
+% Connectivity
+% 'ones' so all-to-all connectivity
+netcon = ones(N_pre,N_post)
+
+
+% Functions
+IAMPA_TRN_TC_NN(X,sAMPA) = -gAMPA/N_pre.*(sAMPA*netcon).*(X-EAMPA)
+
+monitor IAMPA_TRN_TC_NN
+
+% ODEs and ICs
+sAMPA' = 5.*(1 + tanh(X_pre./4)).*(1-sAMPA) - sAMPA./tauAMPA;
+sAMPA(0) = sAMPAIC+sAMPANoiseIC.*rand(1,N_pre);
+
+% Linker
+@current += IAMPA_TRN_TC_NN(X_post,sAMPA)

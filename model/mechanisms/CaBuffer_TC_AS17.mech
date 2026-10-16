@@ -1,0 +1,32 @@
+% # CaBuffer_TC_AS17:
+%
+% Calcium buffer concentration dynamics, for generic thalamocortical relay
+% cells used in (Soplata et al., 2017).
+%
+% - References:
+%     - Soplata AE, McCarthy MM, Sherfey J, Lee S, Purdon PL, Brown EN, et al.
+%     Thalamocortical control of propofol phase-amplitude coupling. PLoS Comput
+%     Biol. 2017;13: e1005879. doi:10.1371/journal.pcbi.1005879
+%
+% - Requires: "@iT_TC_AS17" exposed by "iT_TC_AS17" mechanism
+%
+% - Exposes: calcium concentration "@CaBuffer_TC_AS17" required for
+%     "iH_TC_AS17" and "iT_TC_AS17" mechanisms
+%
+% - Tags: calcium, intrinsic, thalamocortical
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Parameters
+tauR = 5         % ms
+Ca_inf = 0.00024 % mM of calcium, aka 2.4e-4
+% See "Interneuron-mediated inhibition synchronizes neuronal activity during
+%     slow oscillation" Chen et al., 2012, Equation 5:
+A = 10/(2*96489) % mM cm^2/(ms uA) drive conversion of Ca-modifying currents
+CaBufferIC = 0.0003
+CaBufferNoiseIC = 0.00001
+
+% ODEs
+CaBuffer_TC_AS17' = max(-A.*@iT_TC_AS17, 0) + (Ca_inf - CaBuffer_TC_AS17)./tauR
+CaBuffer_TC_AS17(0) = CaBufferIC+CaBufferNoiseIC.*rand(1,Npop)
+
+% Interface
+@CaBuffer_TC_AS17 += CaBuffer_TC_AS17

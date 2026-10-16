@@ -1,0 +1,47 @@
+% # iAMPA_TRN_PYso:
+%
+% Synaptic AMPAergic excitatory current used in (Soplata et al., 2017).
+%
+% - References:
+%     - Soplata AE, McCarthy MM, Sherfey J, Lee S, Purdon PL, Brown EN, et al.
+%     Thalamocortical control of propofol phase-amplitude coupling. PLoS Comput
+%     Biol. 2017;13: e1005879. doi:10.1371/journal.pcbi.1005879
+%
+% Tags: synapse, connection, excitation
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Parameters
+gAMPA = 0.2 % mS/cm^2
+EAMPA = 1   % mV
+% EAMPA = 0   % mV
+tauAMPA = 2
+
+sAMPAIC = 0
+sAMPANoiseIC= 0.1
+
+% Connectivity
+% Connective radius, aka how many target cells each source cell connects
+% to, from the source's perspective.
+radius = 10
+
+% Remove autapses to the dendrite corresponding to this soma
+removeRecurrentBool = 0
+% We also need to normalize the conductance in mS/cm^2 by the number of
+% connections each target cell is receiving on average, so that the TOTAL
+% sum of their conductive inputs adds to our overall maximal conductance
+% above.
+normalizingFactor = min(((2*radius + (1-removeRecurrentBool)) / (N_post/N_pre)), N_pre)
+
+% Note that what is passed is 2x the radius
+netcon = netconNearestNeighbors(2*radius, N_pre, N_post, removeRecurrentBool)
+
+% Functions
+IAMPA_TRN_PYso(X,sAMPA) = -gAMPA/normalizingFactor.*(sAMPA*netcon).*(X-EAMPA)
+
+monitor IAMPA_TRN_PYso
+
+% ODEs and ICs
+sAMPA' = 5.*(1 + tanh(X_pre./4)).*(1-sAMPA) - sAMPA./tauAMPA;
+sAMPA(0) = sAMPAIC+sAMPANoiseIC.*rand(1,N_pre);
+
+% Linker
+@current += IAMPA_TRN_PYso(X_post,sAMPA)

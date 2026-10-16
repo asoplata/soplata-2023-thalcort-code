@@ -1,0 +1,19 @@
+% iAppliedStimAS22(t):
+%
+% Tonic stimulus, representing applied current injected into cell.
+%
+% Note: By default this is ZERO, you must explicitly change the value using
+% 'vary', '.parameters', etc. if you actually want to use this mechanism!
+
+appliedStimAmpl=0
+onset=0
+offset=inf
+randomFlag=0
+
+% appliedStimDist = rand(1, Npop_PYdr);
+appliedStimDist = ones(1, N_post) - randomFlag*rand(1, N_post);
+
+
+IAppliedStimAS22(t) = appliedStimAmpl*appliedStimDist*(t>onset & t<offset)
+
+@current += IAppliedStimAS22(t)

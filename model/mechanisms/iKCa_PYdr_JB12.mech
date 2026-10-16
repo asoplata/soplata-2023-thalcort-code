@@ -1,0 +1,32 @@
+% # iKCa_PYdr_JB12:
+%
+% Slow calcium-dependent potassium current, for generic pyramidal dendrite
+% compartments used in the DynaSim implementation of (Benita et al., 2012).
+%
+% - References:
+%     - Benita, J. M., Guillamon, A., Deco, G., & Sanchez-Vives, M. V. (2012).
+%     Synaptic depression and slow oscillatory activity in a biophysical
+%     network model of the cerebral cortex. Frontiers in Computational
+%     Neuroscience, 6. https://doi.org/10.3389/fncom.2012.00064
+%
+% - Requires: @CaBuffer_PYdr_JB12 calcium concentration exposed by
+%     "CaBuffer_PYdr_JB12" mechanism
+%
+% - Tags: calcium, potassium, current, intrinsic, pyramidal, dendrite
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Parameters
+gKCa = 0.57 % mS/cm^2
+EKCa = -100 % mV
+% AES
+KD = 30 % uM
+% KD = 0.03 % nM
+
+% Functions
+IKCa_PYdr_JB12(X,CaBuffer_PYdr_JB12) = -gKCa.*(@CaBuffer_PYdr_JB12)./(@CaBuffer_PYdr_JB12 + KD).*(X-EKCa)
+
+% AES: Don't monitor this current, since there is currently a bug when
+% monitoring functions that directly use linked variables, it seems.
+monitor IKCa_PYdr_JB12
+
+% Interface
+@current += IKCa_PYdr_JB12(X,CaBuffer_PYdr_JB12)

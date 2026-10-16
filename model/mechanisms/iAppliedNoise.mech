@@ -1,0 +1,13 @@
+% iAppliedNoise(t):
+%
+% Gaussian noise applied current, representing incoming noise into cell.
+
+noiseAmplitude=0.2
+onset=0
+offset=inf
+
+IAppliedNoise(t) = noiseAmplitude*randn(1,Npop)*(t>onset & t<offset)
+
+monitor IAppliedNoise
+
+@current += IAppliedNoise(t)
